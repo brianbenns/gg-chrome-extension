@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Garmin Golf Data Downloader",
+  "version": "1.0",
+  "description": "Downloads data from the current site using fetch with credentials",
+  "permissions": [
+    "downloads",
+    "tabs",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://connect.garmin.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://connect.garmin.com/*"],
+      "js": ["content-script.js"]
+    }
+  ],
+  "web_accessible_resources": [{
+    "resources": ["header-capture.js", "token-getter.js"],
+    "matches": ["https://connect.garmin.com/*"]
+  }]
+} 
