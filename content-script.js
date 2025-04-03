@@ -1,3 +1,38 @@
+function toDecimalDegrees(lat, lon) {
+    // Convert microdegrees to decimal degrees
+    return [lat * 180 / 2 ** 31, lon * 180 / 2 ** 31];
+  }
+  
+
+function latLonToCartesian(lat, lon, R = 6371000) {
+    // Convert latitude and longitude to radians
+    const latRad = lat * Math.PI / 180;
+    const lonRad = lon * Math.PI / 180;
+    
+    // Convert to Cartesian coordinates (x, y, z)
+    const x = R * Math.cos(latRad) * Math.cos(lonRad);
+    const y = R * Math.cos(latRad) * Math.sin(lonRad);
+    const z = R * Math.sin(latRad);
+  
+    return [x, y, z];
+  }
+  
+  function distanceBetweenPoints(lat1, lon1, lat2, lon2) {
+    p1Dec = toDecimalDegrees(lat1, lon1);
+    p2Dec = toDecimalDegrees(lat2, lon2);
+    // Convert the coordinates to Cartesian coordinates
+    const [x1, y1, z1] = latLonToCartesian(p1Dec[0], p1Dec[1]);
+    const [x2, y2, z2] = latLonToCartesian(p2Dec[0], p2Dec[1]);
+  
+    // Calculate the Euclidean distance
+    const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) + Math.pow(z2 - z1, 2));
+    
+    return distance;
+  }
+  
+
+
+
 // Inject script to intercept fetch requests and capture headers
 function injectHeaderCapture() {
     const script = document.createElement('script');
@@ -66,6 +101,7 @@ async function getJwtToken() {
 function convertToCSV(jsonData) {
     // Define the fields we want to extract
     const fields = [
+        'id',
         'courseName',
         'strokes',
         'holesCompleted',
@@ -106,6 +142,7 @@ function convertToCSV(jsonData) {
 function convertDetailedDataToCSV(detailedData) {
     // Define the scorecard-level fields we want
     const scorecardFields = [
+        'id',
         'courseName',
         'date',
         'strokes',
@@ -146,6 +183,7 @@ function convertDetailedDataToCSV(detailedData) {
         'handicapScore',
         'putts',
         'fairwayShotOutcome',
+        'penalties'
     ];
 
     // Create CSV header
@@ -237,7 +275,6 @@ async function downloadSummaryData(endpoint = '/gcs-golfcommunity/api/v2/scoreca
 
         const url = window.location.origin + endpoint;
         console.log('Requesting URL:', url);
-        console.log('Using authorization header:', capturedAuthHeader);
 
         // Fetch data from the current site with credentials
         const response = await fetch(url, {
@@ -408,11 +445,15 @@ async function downloadDetailsData() {
                 detailData.courseName = courseInfoMap[id].courseName;
                 detailData.holePars = courseInfoMap[id].holePars;
             }
+            detailData.id = id;
             // Debugging
             console.log(detailData);
 
             detailedData.push(detailData);
             i++;
+            // if (i > 10) {
+            //     break;
+            // }
         }
 
         // Send completion progress
@@ -594,6 +635,7 @@ async function downloadShotData() {
 
         // Create CSV header (we'll only do this once)
         const shotFields = [
+            'scorecardId',
             'courseName',
             'holeNumber',
             'holeScore',
@@ -602,12 +644,16 @@ async function downloadShotData() {
             'clubType',
             'shotType',
             'yards',
+            'pinLoc_lat',
+            'pinLoc_lon',
             'startLoc_lie',
             'endLoc_lie',
             'startLoc_lat',
             'startLoc_lon',
             'endLoc_lat',
-            'endLoc_lon'
+            'endLoc_lon',
+            'startLoc_dist',
+            'endLoc_dist'
         ];
         let csvContent = shotFields.join(',') + '\n';
 
@@ -697,6 +743,9 @@ async function downloadShotData() {
                             shotFields.forEach(field => {
                                 let value = '';
                                 switch(field) {
+                                    case 'scorecardId':
+                                        value = id;
+                                        break;
                                     case 'courseName':
                                         value = courseInfoMap[id].courseName;
                                         break;
@@ -712,6 +761,12 @@ async function downloadShotData() {
                                     case 'yards':
                                         // Convert meters to yards
                                         value = shot.meters ? (shot.meters * 1.09361).toFixed(1) : '';
+                                        break;
+                                    case 'pinLoc_lat':
+                                        value = hole.pinPosition.lat ? hole.pinPosition.lat : '';
+                                        break;
+                                    case 'pinLoc_lon':
+                                        value = hole.pinPosition.lon? hole.pinPosition.lon : '';
                                         break;
                                     case 'startLoc_lie':
                                         value = shot.startLoc ? shot.startLoc.lie : '';
@@ -730,6 +785,12 @@ async function downloadShotData() {
                                         break;
                                     case 'endLoc_lon':
                                         value = shot.endLoc ? shot.endLoc.lon : '';
+                                        break;
+                                    case 'startLoc_dist':
+                                        value = Math.round(distanceBetweenPoints(shot.startLoc.lat , shot.startLoc.lon, hole.pinPosition.lat, hole.pinPosition.lon) * 1.09361)
+                                        break;
+                                    case 'endLoc_dist':
+                                        value = Math.round(distanceBetweenPoints(shot.endLoc.lat , shot.endLoc.lon, hole.pinPosition.lat, hole.pinPosition.lon) * 1.09361)
                                         break;
                                     default:
                                         value = shot[field] || '';

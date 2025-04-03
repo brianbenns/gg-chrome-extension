@@ -20,7 +20,9 @@
   "content_scripts": [
     {
       "matches": ["https://connect.garmin.com/*"],
-      "js": ["content-script.js"]
+      "js": [
+        "content-script.js"
+      ]
     }
   ],
   "web_accessible_resources": [{

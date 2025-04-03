@@ -75,7 +75,7 @@ document.getElementById('downloadDetailsButton').addEventListener('click', async
             return;
         }
         if (response && response.status === 'success') {
-            console.log('Details download initiated');
+            console.log('Scorecards download initiated');
         }
     });
 });

@@ -23,13 +23,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true; // Will respond asynchronously
     }
     else if (message.action === "downloadFile") {
+        console.log('Received download request:', message);
         chrome.downloads.download({
             url: message.url,
-            filename: message.filename
-        }, () => {
-            // Notify content script that download has started
-            chrome.tabs.sendMessage(sender.tab.id, { action: "downloadStarted" });
+            filename: message.filename,
+            saveAs: true // This will prompt the user to choose where to save the file
+        }, (downloadId) => {
+            if (chrome.runtime.lastError) {
+                console.error('Download error:', chrome.runtime.lastError);
+                sendResponse({ error: chrome.runtime.lastError.message });
+            } else {
+                console.log('Download started with ID:', downloadId);
+                // Notify content script that download has started
+                chrome.tabs.sendMessage(sender.tab.id, { action: "downloadStarted" });
+                sendResponse({ success: true });
+            }
         });
-        return true;
+        return true; // Will respond asynchronously
     }
 }); 
